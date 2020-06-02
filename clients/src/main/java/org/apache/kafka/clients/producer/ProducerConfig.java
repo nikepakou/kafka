@@ -101,6 +101,9 @@ public class ProducerConfig extends AbstractConfig {
                                               + "is measured on the server side and does not include the network latency of the request.";
 
     /** <code>linger.ms</code> */
+    /**
+     * 在未达到batch_size限制时，本该发出去的消息被迫等待了linger.ms时间，所以说增加了发送方的延迟
+     */
     public static final String LINGER_MS_CONFIG = "linger.ms";
     private static final String LINGER_MS_DOC = "The producer groups together any records that arrive in between request transmissions into a single batched request. "
                                                 + "Normally this occurs only under load when records arrive faster than they can be sent out. However in some circumstances the client may want to "

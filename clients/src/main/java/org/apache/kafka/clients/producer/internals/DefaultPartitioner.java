@@ -35,6 +35,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class DefaultPartitioner implements Partitioner {
 
+    /**
+     * count field modified by final keyword : initialized only by once
+     */
     private final AtomicInteger counter = new AtomicInteger(new Random().nextInt());
 
     /**
