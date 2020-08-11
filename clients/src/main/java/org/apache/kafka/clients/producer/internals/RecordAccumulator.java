@@ -12,14 +12,8 @@
  */
 package org.apache.kafka.clients.producer.internals;
 
-import java.util.Iterator;
-
 import org.apache.kafka.clients.producer.Callback;
-import org.apache.kafka.common.Cluster;
-import org.apache.kafka.common.MetricName;
-import org.apache.kafka.common.Node;
-import org.apache.kafka.common.PartitionInfo;
-import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.*;
 import org.apache.kafka.common.metrics.Measurable;
 import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.metrics.Metrics;
@@ -36,15 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -310,6 +296,18 @@ public final class RecordAccumulator {
                         boolean full = deque.size() > 1 || batch.records.isFull();
                         boolean expired = waitedTimeMs >= timeToWaitMs;
                         boolean sendable = full || expired || exhausted || closed || flushInProgress();
+                        /**
+                         * 判断一个ProductBatch能否发送的条件有很多，通常只需要满足一个条件就可以了：
+                         * 比如batch满了可以发送，producer已发起关闭时可以发送，
+                         * 再有就是batch在缓冲区等待的时间超过了linger.ms也可以发送。
+                         * 上面代码虽然有5个条件会影响sendable的取值，但在实际场景中前两个因素的作用是最大的。
+                         * 也就是batch.size和linger.ms。一旦设置了linger.ms，当producer负载很低的时候batch被填满的速度就会很慢，
+                         * 此时Kafka producer的确会延时一段时间（linger.ms）才能将其发送出去——这是linger.ms应用的主要场景。
+                         * 反之，如果负载很高，甚至batch被填满的时间远低于linger.ms，那么此时linger.ms就不起任何作用了。
+                         * 总之，我想说的是，linger.ms只是在某些场景下才会生效，不是说producer在生产每条消息时都能“保质保量”完成对应的延时发送。
+                         * 作者：huxihx
+                         * 链接：https://www.zhihu.com/question/337532426/answer/766992556
+                         */
                         if (sendable && !backingOff) {
                             readyNodes.add(leader);
                         } else {
